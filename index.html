@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000000">
+<title>Fullscreen App</title>
+<link rel="manifest" href="manifest.json">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%;
+    height: 100%;
+    background: #000;
+    color: #fff;
+    font-family: -apple-system, Roboto, sans-serif;
+    overflow: hidden;
+  }
+  #app {
+    width: 100%;
+    height: 100%;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    text-align: center;
+  }
+  h1 { font-size: 20px; font-weight: 600; }
+  p { font-size: 14px; opacity: 0.6; padding: 0 24px; }
+  button {
+    margin-top: 12px;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 10px;
+    background: #2a2a2a;
+    color: #fff;
+    font-size: 14px;
+  }
+  #status {
+    position: absolute;
+    bottom: 20px;
+    font-size: 12px;
+    opacity: 0.4;
+  }
+</style>
+</head>
+<body>
+  <div id="app">
+    <h1>Fullscreen Mode</h1>
+    <p>Status bar hidden via PWA fullscreen display + Fullscreen API. Re-applies automatically when the app resumes from background.</p>
+    <button id="enterFs">Enter Fullscreen</button>
+  </div>
+  <div id="status"></div>
+
+  <script>
+    const statusEl = document.getElementById('status');
+
+    function log(msg) {
+      statusEl.textContent = msg;
+      console.log(msg);
+    }
+
+    async function goFullscreen() {
+      try {
+        if (!document.fullscreenElement) {
+          await document.documentElement.requestFullscreen();
+          if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock('portrait').catch(() => {});
+          }
+        }
+        log('Fullscreen active');
+      } catch (err) {
+        log('Fullscreen blocked (needs user tap): ' + err.message);
+      }
+    }
+
+    document.getElementById('enterFs').addEventListener('click', goFullscreen);
+
+    // Re-apply fullscreen when app comes back from background
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        goFullscreen();
+      }
+    });
+
+    // Try on load too (works automatically if launched from home-screen PWA icon)
+    window.addEventListener('load', () => {
+      if (window.matchMedia('(display-mode: fullscreen)').matches ||
+          window.matchMedia('(display-mode: standalone)').matches) {
+        goFullscreen();
+      }
+    });
+
+    // Register service worker so it behaves like an installable PWA
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+  </script>
+</body>
+</html>
